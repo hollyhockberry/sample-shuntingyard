@@ -1,8 +1,24 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+List<List<(string op, bool leftAssoc)>> Operators = new()
+{
+    new() { ("~", false) },
+    new() { ("**", false) },
+    new() { ("*", true), ("/", true), ("%", true) },
+    new() { ("+", true), ("-", true) },
+};
+
+string[] Functions = new string[]
+{
+    "sqrt", "D"
+};
+
 IEnumerable<string> Split(string formula)
 {
-    var operators = new string[] { "~", "**", "*", "/", "%", "+", "-", "(", ")", "," };
+    var operators = Operators
+         .SelectMany(e => e.Select(o => o.op))
+         .ToList();
+    operators.AddRange("(),".Select(c => $"{c}"));
     string? token = null;
     foreach (var c in formula)
     {
@@ -36,19 +52,6 @@ IEnumerable<string> Split(string formula)
 
 IEnumerable<string> Analyze(IEnumerable<string> tokens)
 {
-    List<List<(string op, bool leftAssoc)>> Operators = new()
-    {
-        new() { ("~", false) },
-        new() { ("**", false) },
-        new() { ("*", true), ("/", true), ("%", true) },
-        new() { ("+", true), ("-", true) },
-    };
-
-    string[] Functions = new string[]
-    {
-        "sqrt", "D"
-    };
-
     var operators = Operators
         .Select((o, i) => (o, i))
         .SelectMany(e => e.o.Select(o => (o.op, e.i, o.leftAssoc)))
