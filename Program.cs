@@ -1,16 +1,28 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-List<List<(string op, bool leftAssoc)>> Operators = new()
+List<List<(string op, bool leftAssoc, int arguments, Func<IEnumerable<decimal>, decimal> eval)>> Operators = new()
 {
-    new() { ("~", false) },
-    new() { ("**", false) },
-    new() { ("*", true), ("/", true), ("%", true) },
-    new() { ("+", true), ("-", true) },
+    new() {
+        ("~", false, 1, (a) => ~(int)a.First())
+    },
+    new() {
+        ("**", false, 2, (a) => (decimal)Math.Pow((double)a.First(), (double)a.Last()))
+    },
+    new() {
+        ("*", true, 2, (a) => a.First() * a.Last()),
+        ("/", true, 2, (a) => a.First() / a.Last()),
+        ("%", true, 2, (a) => a.First() % a.Last())
+    },
+    new() {
+        ("+", true, 2, (a) => a.First() + a.Last()),
+        ("-", true, 2, (a) => a.First() - a.Last())
+    },
 };
 
-string[] Functions = new string[]
+Dictionary<string, (int arguments, Func<IEnumerable<decimal>, decimal> eval)> Functions = new()
 {
-    "sqrt", "D"
+    { "sqrt", (1, (a) => (decimal)Math.Sqrt((double)a.First())) },
+    { "D", (3, (a) => a.First() + a.Skip(1).Take(1).First() + a.Last()) }
 };
 
 IEnumerable<string> Split(string formula)
@@ -58,7 +70,7 @@ IEnumerable<string> Analyze(IEnumerable<string> tokens)
         .ToDictionary(i => i.op, i => (priority: i.i, i.leftAssoc));
 
     bool? isOperator(string t) => operators?.ContainsKey(t);
-    bool? isFunction(string t) => Functions.Contains(t);
+    bool? isFunction(string t) => Functions.ContainsKey(t);
 
     var queue = new Queue<string>();
     var stack = new Stack<string>();
@@ -134,18 +146,11 @@ IEnumerable<string> Analyze(IEnumerable<string> tokens)
 
 decimal Evaluate(IEnumerable<string> rpn)
 {
-    Dictionary<string, (int arguments, Func<IEnumerable<decimal>, decimal> eval)> operators = new()
-    {
-        { "~", (1, (a) => ~(int)a.First()) },
-        { "**", (2, (a) => (decimal)Math.Pow((double)a.First(), (double)a.Last())) },
-        { "*", (2, (a) => a.First() * a.Last()) },
-        { "/", (2, (a) => a.First() / a.Last()) },
-        { "%", (2, (a) => a.First() % a.Last()) },
-        { "+", (2, (a) => a.First() + a.Last()) },
-        { "-", (2, (a) => a.First() - a.Last()) },
-        { "sqrt", (1, (a) => (decimal)Math.Sqrt((double)a.First())) },
-        { "D", (3, (a) => a.First() + a.Skip(1).Take(1).First() + a.Last()) },
-    };
+    var operators = Operators
+        .SelectMany(o => o.Select(e => (e.op, e.arguments, e.eval)))
+        .ToDictionary(o => o.op, o => (o.arguments, o.eval))
+        .Concat(Functions)
+        .ToDictionary(o => o.Key, o => (o.Value.arguments, o.Value.eval));
 
     var stack = new Stack<string>();
     foreach (var i in rpn)
