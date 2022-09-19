@@ -132,15 +132,59 @@ IEnumerable<string> Analyze(IEnumerable<string> tokens)
     return queue;
 }
 
+decimal Evaluate(IEnumerable<string> rpn)
+{
+    Dictionary<string, (int arguments, Func<IEnumerable<decimal>, decimal> eval)> operators = new()
+    {
+        { "~", (1, (a) => ~(int)a.First()) },
+        { "**", (2, (a) => (decimal)Math.Pow((double)a.First(), (double)a.Last())) },
+        { "*", (2, (a) => a.First() * a.Last()) },
+        { "/", (2, (a) => a.First() / a.Last()) },
+        { "%", (2, (a) => a.First() % a.Last()) },
+        { "+", (2, (a) => a.First() + a.Last()) },
+        { "-", (2, (a) => a.First() - a.Last()) },
+        { "sqrt", (1, (a) => (decimal)Math.Sqrt((double)a.First())) },
+        { "D", (3, (a) => a.First() + a.Skip(1).Take(1).First() + a.Last()) },
+    };
+
+    var stack = new Stack<string>();
+    foreach (var i in rpn)
+    {
+        if (operators.ContainsKey(i))
+        {
+            var op = operators[i];
+            if (stack.Count < op.arguments)
+            {
+                throw new Exception();
+            }
+            var args = Enumerable.Range(0, op.arguments)
+                .Select(_ => decimal.Parse(stack.Pop()))
+                .Reverse()
+                .ToArray();
+
+            var v = op.eval?.Invoke(args);
+            stack.Push($"{v}");
+            //Console.WriteLine($"{i}: {string.Join(",", args.Select(o => $"{o}"))} => {v}");
+        }
+        else
+        {
+            stack.Push(i);
+        }
+    }
+    return decimal.Parse(stack.Pop());
+}
+
 void test(string formula)
 {
     try
     {
         Console.WriteLine($"INPUT: {formula}");
         var tokens = Split(formula);
-        Console.WriteLine(string.Join(' ', tokens));
+        //Console.WriteLine(string.Join(' ', tokens));
         var rpn = Analyze(tokens);
-        Console.WriteLine(string.Join(' ', rpn));
+        //Console.WriteLine(string.Join(' ', rpn));
+        var v = Evaluate(rpn);
+        Console.WriteLine($"value = {v}");
     }
     catch (Exception)
     {
@@ -151,9 +195,12 @@ void test(string formula)
 
 test("3 + 4 * 2 / ( 1 - 5 ) ** 2 ** 3");
 test("3+4*2/(1-5)**2**3");
-test("D(f - b * c + d, ~e, g)");
+test("D(1 - 2 * 3 + 4, ~5, 6)");
 test("1.5*2.22");
 test("sqrt(2*3)");
-test("-sqrt(2)");
+test("1-sqrt(2)");
+test("-sqrt(2)");   // error
+test("-1 - 1");     // error
+test("-1 - -1");    // error
 
 for (; ; );
