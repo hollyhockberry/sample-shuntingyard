@@ -84,7 +84,7 @@ IEnumerable<string> Analyze(IEnumerable<string> tokens)
         else if (t == ",")
         {
             if (!stack.Contains("("))
-                throw new Exception();
+                throw new Exception("illegal comma");
 
             while (stack.First() != "(")
             {
@@ -120,7 +120,7 @@ IEnumerable<string> Analyze(IEnumerable<string> tokens)
         else if (t == ")")
         {
             if (!stack.Contains("("))
-                throw new Exception();
+                throw new Exception("No corresponding brackets");
 
             while (true)
             {
@@ -152,7 +152,16 @@ Dictionary<string, decimal> Variables = new()
 decimal Evaluate(IEnumerable<string> rpn)
 {
     decimal ToDecimal(string s)
-        => Variables.ContainsKey(s) ? Variables[s] : decimal.Parse(s);
+    {
+        try
+        {
+            return Variables.ContainsKey(s) ? Variables[s] : decimal.Parse(s);
+        }
+        catch
+        {
+            throw new Exception("Invalid variables.");
+        }
+    }
 
     var operators = Operators
         .SelectMany(o => o.Select(e => (e.op, e.arguments, e.eval)))
@@ -168,7 +177,7 @@ decimal Evaluate(IEnumerable<string> rpn)
             var op = operators[i];
             if (stack.Count < op.arguments)
             {
-                throw new Exception();
+                throw new Exception("Missing arguments.");
             }
             var args = Enumerable.Range(0, op.arguments)
                 .Select(_ => ToDecimal(stack.Pop()))
@@ -212,7 +221,9 @@ void test(string formula)
             Console.WriteLine($"store {v} to {part[0]}");
         }
     }
+    catch (Exception ex)
     {
+        Console.WriteLine($"error: {ex.Message}");
     }
     Console.WriteLine();
 }
