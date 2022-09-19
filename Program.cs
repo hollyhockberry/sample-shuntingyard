@@ -192,16 +192,27 @@ void test(string formula)
     try
     {
         Console.WriteLine($"INPUT: {formula}");
-        var tokens = Split(formula);
-        //Console.WriteLine(string.Join(' ', tokens));
+        var part = formula.Split('=');
+        var tokens = part.Length switch
+        {
+            1 => Split(part[0]),
+            2 => Split(part[1]),
+            _ => throw new Exception()
+        };
+
+        Console.WriteLine(string.Join(' ', tokens));
         var rpn = Analyze(tokens);
-        //Console.WriteLine(string.Join(' ', rpn));
+        Console.WriteLine(string.Join(' ', rpn));
         var v = Evaluate(rpn);
         Console.WriteLine($"value = {v}");
+
+        if (part.Length == 2)
+        {
+            Variables[part[0].Trim()] = v;
+            Console.WriteLine($"store {v} to {part[0]}");
+        }
     }
-    catch (Exception)
     {
-        Console.WriteLine("error...");
     }
     Console.WriteLine();
 }
@@ -216,5 +227,9 @@ test("-sqrt(2)");   // error
 test("-1 - 1");     // error
 test("-1 - -1");    // error
 test("pi * 5 ** 2");
+test("x = 1 + 2");
+test("y = 2 * x + 1");
+test("x + y");
+test("x + z");
 
 for (; ; );
