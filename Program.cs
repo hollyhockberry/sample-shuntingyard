@@ -144,8 +144,16 @@ IEnumerable<string> Analyze(IEnumerable<string> tokens)
     return queue;
 }
 
+Dictionary<string, decimal> Variables = new()
+{
+    { "pi", (decimal)Math.PI }
+};
+
 decimal Evaluate(IEnumerable<string> rpn)
 {
+    decimal ToDecimal(string s)
+        => Variables.ContainsKey(s) ? Variables[s] : decimal.Parse(s);
+
     var operators = Operators
         .SelectMany(o => o.Select(e => (e.op, e.arguments, e.eval)))
         .ToDictionary(o => o.op, o => (o.arguments, o.eval))
@@ -163,7 +171,7 @@ decimal Evaluate(IEnumerable<string> rpn)
                 throw new Exception();
             }
             var args = Enumerable.Range(0, op.arguments)
-                .Select(_ => decimal.Parse(stack.Pop()))
+                .Select(_ => ToDecimal(stack.Pop()))
                 .Reverse()
                 .ToArray();
 
@@ -176,7 +184,7 @@ decimal Evaluate(IEnumerable<string> rpn)
             stack.Push(i);
         }
     }
-    return decimal.Parse(stack.Pop());
+    return ToDecimal(stack.Pop());
 }
 
 void test(string formula)
@@ -207,5 +215,6 @@ test("1-sqrt(2)");
 test("-sqrt(2)");   // error
 test("-1 - 1");     // error
 test("-1 - -1");    // error
+test("pi * 5 ** 2");
 
 for (; ; );
