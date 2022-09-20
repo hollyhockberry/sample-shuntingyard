@@ -136,6 +136,10 @@ IEnumerable<string> Parse(IEnumerable<string> tokens)
         {
             enqueue(pop());
             expr();
+            if (top() != ")")
+            {
+                throw new Exception("No corresponding brackets");
+            }
             enqueue(pop());
         }
         else
