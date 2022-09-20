@@ -251,7 +251,7 @@ IEnumerable<string> Analyze(IEnumerable<string> tokens)
                 if (o == "(") break;
                 queue.Enqueue(o);
             }
-            if (isFunction(stack.First()) == true)
+            if (stack.Count > 0 && isFunction(stack.First()) == true)
             {
                 queue.Enqueue(stack.Pop());
             }
@@ -355,6 +355,11 @@ void test(string formula)
     Console.WriteLine();
 }
 
+test("(3)");
+test("(3 + 2)");
+test("(3 + (2))");
+test("(3 + -(-2))");
+test("(((func())))");
 test("sqrt(3 + 4 * 2 / ( 1 - 5 ) ** 2 ** 3)");
 test("func()");
 test("3 + 2");
