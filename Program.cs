@@ -282,7 +282,7 @@ decimal Evaluate(IEnumerable<string> rpn)
         }
         catch
         {
-            throw new Exception("Invalid variables.");
+            throw new Exception($"Invalid variable '{s}'");
         }
     }
 
