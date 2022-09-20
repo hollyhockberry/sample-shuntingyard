@@ -319,32 +319,34 @@ decimal Evaluate(IEnumerable<string> rpn)
     return ToDecimal(stack.Pop());
 }
 
+decimal calculete(string formula)
+{
+    var part = formula.Split('=');
+    var tokens = part.Length switch
+    {
+        1 => Split(part[0]),
+        2 => Split(part[1]),
+        _ => throw new Exception()
+    };
+
+    var parsed = Parse(tokens);
+    var rpn = Analyze(parsed);
+    var v = Evaluate(rpn);
+
+    if (part.Length == 2)
+    {
+        Variables[part[0].Trim()] = v;
+    }
+    return v;
+}
+
 void test(string formula)
 {
     try
     {
         Console.WriteLine($"INPUT: {formula}");
-        var part = formula.Split('=');
-        var tokens = part.Length switch
-        {
-            1 => Split(part[0]),
-            2 => Split(part[1]),
-            _ => throw new Exception()
-        };
-
-        Console.WriteLine(string.Join(' ', tokens));
-        var parsed = Parse(tokens);
-        Console.WriteLine(string.Join(' ', parsed));
-        var rpn = Analyze(parsed);
-        Console.WriteLine(string.Join(' ', rpn));
-        var v = Evaluate(rpn);
-        Console.WriteLine($"value = {v}");
-
-        if (part.Length == 2)
-        {
-            Variables[part[0].Trim()] = v;
-            Console.WriteLine($"store {v} to {part[0]}");
-        }
+        var v = calculete(formula);
+        Console.WriteLine($"OUTPUT: {v}");
     }
     catch (Exception ex)
     {
