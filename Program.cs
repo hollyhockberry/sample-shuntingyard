@@ -1,9 +1,13 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using System.Text.RegularExpressions;
+
 List<List<(string op, bool leftAssoc, int arguments, Func<IEnumerable<decimal>, decimal> eval)>> Operators = new()
 {
     new() {
-        ("~", false, 1, (a) => ~(int)a.First())
+        ("[~]", false, 1, (a) => ~(int)a.First()),
+        ("[+]", false, 1, (a) => a.First()),
+        ("[-]", false, 1, (a) => -a.First()),
     },
     new() {
         ("**", false, 2, (a) => (decimal)Math.Pow((double)a.First(), (double)a.Last()))
@@ -22,6 +26,7 @@ List<List<(string op, bool leftAssoc, int arguments, Func<IEnumerable<decimal>, 
 Dictionary<string, (int arguments, Func<IEnumerable<decimal>, decimal> eval)> Functions = new()
 {
     { "sqrt", (1, (a) => (decimal)Math.Sqrt((double)a.First())) },
+    { "func", (0, (_) => 123) },
     { "D", (3, (a) => a.First() + a.Skip(1).Take(1).First() + a.Last()) }
 };
 
@@ -29,6 +34,8 @@ IEnumerable<string> Split(string formula)
 {
     var operators = Operators
          .SelectMany(e => e.Select(o => o.op))
+         .Select(s => s.Replace("[", "").Replace("]", ""))
+         .Distinct()
          .ToList();
     operators.AddRange("(),".Select(c => $"{c}"));
     string? token = null;
@@ -60,6 +67,122 @@ IEnumerable<string> Split(string formula)
         }
     }
     if (token != null) yield return token;
+}
+
+IEnumerable<string> Parse(IEnumerable<string> tokens)
+{
+    var token_queue = new Queue<string>(tokens);
+    var queue = new Queue<string>();
+
+    expr();
+    return queue;
+
+    void enqueue(string? token)
+    {
+        if (token != null)
+            queue.Enqueue(token);
+    }
+
+    string? pop() => token_queue?.Dequeue();
+    string? top() => token_queue?.Count > 0 ? token_queue.First() : null;
+
+    //<expr>    ::= <term> [ ('+'|'-') <term> ]*
+    //<term>    ::= <factor> [ ('*'|'/') <factor> ]*
+    //<factor>  ::= <factor2> | ('+'|'-'|'~') <factor2>
+    //<factor2> ::= <item> | '(' <expr> ')' |
+    //<item>    ::= <identifier> ["(" [<arglist>] ")"]
+    //<arglist> ::= <expr> { "," <expr> }
+    //<identifier> ::= [1-9] [0-9]* [.] [0-9]* | "0x" [0-9A-Fa-f]* | [A-Za-z_] [A-Za-z0-9_]*
+
+    void expr()
+    {
+        term();
+        string[] operators = new string[] { "+", "-" };
+        while (operators.Contains(top()))
+        {
+            enqueue(pop());
+            term();
+        }
+    }
+
+    void term()
+    {
+        factor();
+        string[] operators = new string[] { "**", "*", "/", "%" };
+        while (operators.Contains(top()))
+        {
+            enqueue(pop());
+            factor();
+        }
+    }
+
+    void factor()
+    {
+        string[] operators = new string[] { "+", "-", "~" };
+        if (operators.Contains(top()))
+        {
+            enqueue($"[{pop()}]");
+            factor2();
+        }
+        else
+        {
+            factor2();
+        }
+    }
+
+    void factor2()
+    {
+        if (top() == "(")
+        {
+            enqueue(pop());
+            expr();
+            enqueue(pop());
+        }
+        else
+        {
+            item();
+        }
+    }
+
+    void item()
+    {
+        identifier();
+        if (top() == "(")
+        {
+            enqueue(pop());
+            while (top() != ")")
+            {
+                arglist();
+            }
+            enqueue(pop());
+        }
+    }
+
+    void arglist()
+    {
+        expr();
+        while (top() == ",")
+        {
+            enqueue(pop());
+            expr();
+        }
+    }
+
+    void identifier()
+    {
+        var token = pop();
+        if (token == null)
+            throw new Exception();
+
+        if (!Regex.IsMatch(token, "^[0-9]*\\.?[0-9]+$") &&
+            !Regex.IsMatch(token, "^0x[0-9A-Fa-f]+$") &&
+            !Regex.IsMatch(token, "^[A-Za-z_][0-9A-Za-z_]*$"))
+        {
+            throw new Exception($"illegal identifier '{token}'");
+        }
+
+        enqueue(token);
+    }
 }
 
 IEnumerable<string> Analyze(IEnumerable<string> tokens)
@@ -210,7 +333,9 @@ void test(string formula)
         };
 
         Console.WriteLine(string.Join(' ', tokens));
-        var rpn = Analyze(tokens);
+        var parsed = Parse(tokens);
+        Console.WriteLine(string.Join(' ', parsed));
+        var rpn = Analyze(parsed);
         Console.WriteLine(string.Join(' ', rpn));
         var v = Evaluate(rpn);
         Console.WriteLine($"value = {v}");
@@ -228,15 +353,23 @@ void test(string formula)
     Console.WriteLine();
 }
 
+test("sqrt(3 + 4 * 2 / ( 1 - 5 ) ** 2 ** 3)");
+test("func()");
+test("3 + 2");
+test("2");
+test("-3 + 2");
+test("-3 + -2");
+test("+3 + +2");
+test("~3 + ~2");
 test("3 + 4 * 2 / ( 1 - 5 ) ** 2 ** 3");
 test("3+4*2/(1-5)**2**3");
 test("D(1 - 2 * 3 + 4, ~5, 6)");
 test("1.5*2.22");
 test("sqrt(2*3)");
 test("1-sqrt(2)");
-test("-sqrt(2)");   // error
-test("-1 - 1");     // error
-test("-1 - -1");    // error
+test("-sqrt(2)");
+test("-1 - 1");
+test("-1 - -1");
 test("pi * 5 ** 2");
 test("x = 1 + 2");
 test("y = 2 * x + 1");
