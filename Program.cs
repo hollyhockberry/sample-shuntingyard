@@ -348,47 +348,73 @@ decimal calculete(string formula)
     return v;
 }
 
-void test(string formula)
+void assert_equal(string formula, decimal expected)
+{
+    Console.WriteLine($"INPUT: {formula}");
+    var v = calculete(formula);
+    if (v == expected)
+    {
+        Console.WriteLine($"✅Pass {v}");
+    }
+    else
+    {
+        Console.WriteLine($"❌ Unmatch: {v} != {expected}");
+    }
+}
+
+void expect_exception(string formula, string message)
 {
     try
     {
         Console.WriteLine($"INPUT: {formula}");
-        var v = calculete(formula);
-        Console.WriteLine($"OUTPUT: {v}");
+        _ = calculete(formula);
+        Console.WriteLine("❌ No exception occurred");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"error: {ex.Message}");
+        if (ex.Message.StartsWith(message))
+        {
+            Console.WriteLine($"✅ Expected exception: {ex.Message}");
+        }
+        else
+        {
+            Console.WriteLine($"❌ Unexpected exception: {ex.Message}");
+        }
     }
-    Console.WriteLine();
 }
 
-test("(3)");
-test("(3 + 2)");
-test("(3 + (2))");
-test("(3 + -(-2))");
-test("(((func())))");
-test("sqrt(3 + 4 * 2 / ( 1 - 5 ) ** 2 ** 3)");
-test("func()");
-test("3 + 2");
-test("2");
-test("-3 + 2");
-test("-3 + -2");
-test("+3 + +2");
-test("~3 + ~2");
-test("3 + 4 * 2 / ( 1 - 5 ) ** 2 ** 3");
-test("3+4*2/(1-5)**2**3");
-test("D(1 - 2 * 3 + 4, ~5, 6)");
-test("1.5*2.22");
-test("sqrt(2*3)");
-test("1-sqrt(2)");
-test("-sqrt(2)");
-test("-1 - 1");
-test("-1 - -1");
-test("pi * 5 ** 2");
-test("x = 1 + 2");
-test("y = 2 * x + 1");
-test("x + y");
-test("x + z");
+assert_equal("(3)", 3);
+assert_equal("(3 + 2)", 3 + 2);
+assert_equal("(3 + (2))", 3 + 2);
+assert_equal("(3 + -(-2))", 3 + 2);
+assert_equal("(((func())))", 123);
+assert_equal("sqrt(3 + 4 * 2 / ( 1 - 5 ) ** 2 ** 3)", (decimal)Math.Sqrt((3 + 4 * 2 / Math.Pow((1 - 5), Math.Pow(2, 3)))));
+assert_equal("func()", 123);
+assert_equal("3 + 2", 3 + 2);
+assert_equal("2", 2);
+assert_equal("-3 + 2", -3 + 2);
+assert_equal("-3 + -2", -3 + -2);
+assert_equal("+3 + +2", 3 + +2);
+assert_equal("~3 + ~2", ~3 + ~2);
+assert_equal("3 + 4 * 2 / ( 1 - 5 ) ** 2 ** 3", (decimal)(3 + 4 * 2 / Math.Pow((1 - 5), Math.Pow(2, 3))));
+assert_equal("3+4*2/(1-5)**2**3", (decimal)(3 + 4 * 2 / Math.Pow((1 - 5), Math.Pow(2, 3))));
+assert_equal("D(1 - 2 * 3 + 4, ~5, 6)", (1 - 2 * 3 + 4) + ~5 + 6);
+assert_equal("1.5*2.22", (decimal)(1.5 * 2.22));
+assert_equal("sqrt(2*3)", (decimal)Math.Sqrt(2 * 3));
+assert_equal("1-sqrt(2)", 1 - (decimal)Math.Sqrt(2));
+assert_equal("-sqrt(2)", (decimal)-Math.Sqrt(2));
+assert_equal("-1 - 1", -1 - 1);
+assert_equal("-1 - -1", -1 - -1);
+assert_equal("pi * 5 ** 2", (decimal)Math.PI * (decimal)Math.Pow(5, 2));
+assert_equal("x = 1 + 2", 1 + 2);
+assert_equal("x", 1 + 2);
+assert_equal("y = 2 * x + 1", 2 * (1 + 2) + 1);
+assert_equal("x + y", (1 + 2) + (2 * (1 + 2) + 1));
+
+expect_exception("(3 + 5", "No corresponding brackets");
+expect_exception("(3 +)", "illegal identifier");
+expect_exception("3,3", "syntax error");
+expect_exception("x + z", "Invalid variable");
+expect_exception("D(1,2)", "Missing arguments");
 
 for (; ; );
