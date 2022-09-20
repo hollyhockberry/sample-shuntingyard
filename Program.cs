@@ -75,6 +75,10 @@ IEnumerable<string> Parse(IEnumerable<string> tokens)
     var queue = new Queue<string>();
 
     expr();
+
+    if (token_queue.Count > 0)
+        throw new Exception("syntax error");
+
     return queue;
 
     void enqueue(string? token)
