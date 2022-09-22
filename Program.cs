@@ -90,18 +90,17 @@ IEnumerable<string> Parse(IEnumerable<string> tokens)
     string? pop() => token_queue?.Dequeue();
     string? top() => token_queue?.Count > 0 ? token_queue.First() : null;
 
-    //<expr>    ::= <term> [ ('+'|'-') <term> ]*
-    //<term>    ::= <factor> [ ('*'|'/') <factor> ]*
-    //<factor>  ::= <factor2> | ('+'|'-'|'~') <factor2>
-    //<factor2> ::= <item> | '(' <expr> ')' |
-    //<item>    ::= <identifier> ["(" [<arglist>] ")"]
-    //<arglist> ::= <expr> { "," <expr> }
-    //<identifier> ::= [1-9] [0-9]* [.] [0-9]* | "0x" [0-9A-Fa-f]* | [A-Za-z_] [A-Za-z0-9_]*
+    // expr ::= <term> { "+" | "-" | "*" | "/" | "%" | "**", <term> }
+    // term ::= <term2> | "+" | "-" | "~", <term2>
+    // term2 ::= "(" <expr> ")" | <factor>
+    // factor ::= <literal> [ "(", [<arglist>] ")" ]
+    // arglist ::= <expr> { ",", <expr> }
+    // literal := [1-9], [0-9]*, [.], [0-9]* | "0x", [0-9A-Fa-f]* | [A-Za-z_], [A-Za-z0-9_]*
 
     void expr()
     {
         term();
-        string[] operators = new string[] { "+", "-" };
+        string[] operators = new string[] { "+", "-", "*", "/", "%", "**" };
         while (operators.Contains(top()))
         {
             enqueue(pop());
@@ -111,30 +110,19 @@ IEnumerable<string> Parse(IEnumerable<string> tokens)
 
     void term()
     {
-        factor();
-        string[] operators = new string[] { "**", "*", "/", "%" };
-        while (operators.Contains(top()))
-        {
-            enqueue(pop());
-            factor();
-        }
-    }
-
-    void factor()
-    {
         string[] operators = new string[] { "+", "-", "~" };
         if (operators.Contains(top()))
         {
             enqueue($"[{pop()}]");
-            factor2();
+            term2();
         }
         else
         {
-            factor2();
+            term2();
         }
     }
 
-    void factor2()
+    void term2()
     {
         if (top() == "(")
         {
@@ -148,13 +136,13 @@ IEnumerable<string> Parse(IEnumerable<string> tokens)
         }
         else
         {
-            item();
+            factor();
         }
     }
 
-    void item()
+    void factor()
     {
-        identifier();
+        literal();
         if (top() == "(")
         {
             enqueue(pop());
@@ -176,7 +164,7 @@ IEnumerable<string> Parse(IEnumerable<string> tokens)
         }
     }
 
-    void identifier()
+    void literal()
     {
         var token = pop();
         if (token == null)
